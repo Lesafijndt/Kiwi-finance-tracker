@@ -19,7 +19,7 @@ concurrency:
 jobs:
   publish:
     if: github.repository == 'Lesafijndt/Kiwi-finance-tracker' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out trusted workflow revision
@@ -35,7 +35,10 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install Android verification tools
-        run: sdkmanager 'build-tools;35.0.0'
+        run: |
+          if [[ ! -x "$ANDROID_HOME/build-tools/35.0.0/aapt2" ]]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
+          fi
       - name: Verify and publish signed release
         env:
           GH_TOKEN: ${{ github.token }}
