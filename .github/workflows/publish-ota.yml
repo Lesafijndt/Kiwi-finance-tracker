@@ -1,0 +1,43 @@
+name: Publish Kiwi OTA
+run-name: Publish Kiwi OTA ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable draft release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kiwi-public-ota
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'Lesafijndt/Kiwi-finance-tracker' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out trusted workflow revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Test publication validation
+        run: python3 -m unittest discover -s scripts -p test_publish_update.py
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android verification tools
+        run: sdkmanager 'build-tools;35.0.0'
+      - name: Verify and publish signed release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: python3 scripts/publish_update.py --sdk "$ANDROID_HOME" --finalize "$RELEASE_TAG"
